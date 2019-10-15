@@ -15,7 +15,7 @@ class Parser:
             "pop": "C_POP",
             "push": "C_PUSH"
             }
-       self.end= False
+		self.end= False
             
 	def hasMoreCommands(self):
 		if(self.end):
@@ -152,7 +152,7 @@ class CodeWriter:
 	def WritePushPop(self,command,segment,index):
 		
 		if(command=="push"):
-			self.outputfile.write("//push"+segment+str(index)+"\n")
+			self.outputfile.write("//push "+segment+" "+str(index)+"\n")
 			if(segment=="local"):
 				smtg+="@"+index+"\n"
 				smtg+="D=A\n"
@@ -245,6 +245,126 @@ class CodeWriter:
 				
 			else:
 				smtg="invalid"
+				
+			self.outputfile.write(smtg+"\n")
+				
+		elif(command=="pop"):
+			smtg=""
+			self.outputfile.write("//pop "+segment+" "+str(index)+"\n")
+			if(segment=="local"):
+				smtg+="@"+index+"\n"
+				smtg+="D=A\n"
+				smtg+="@LCL\n"
+				smtg+="D=M+D\n"
+				smtg+="@R13\n"
+				smtg+="M=D\n"
+				smtg+="@SP\n"
+				smtg+="A=M-1\n"
+				smtg+="D=M\n"
+				smtg+="@R13\n"
+				smtg+="A=M\n"
+				smtg+="M=D\n"
+				
+			elif(segment=="that"):
+				smtg+="@"+index+"\n"
+				smtg+="D=A\n"
+				smtg+="@THAT\n"
+				smtg+="D=M+D\n"
+				smtg+="@R13\n"
+				smtg+="M=D\n"
+				smtg+="@SP\n"
+				smtg+="A=M-1\n"
+				smtg+="D=M\n"
+				smtg+="@R13\n"
+				smtg+="A=M\n"
+				smtg+="M=D\n"
+				
+			elif(segment=="this"):
+				smtg+="@"+index+"\n"
+				smtg+="D=A\n"
+				smtg+="@THIS\n"
+				smtg+="D=M+D\n"
+				smtg+="@R13\n"
+				smtg+="M=D\n"
+				smtg+="@SP\n"
+				smtg+="A=M-1\n"
+				smtg+="D=M\n"
+				smtg+="@R13\n"
+				smtg+="A=M\n"
+				smtg+="M=D\n"
+				
+			elif(segment=="argument"):
+				smtg+="@"+index+"\n"
+				smtg+="D=A\n"
+				smtg+="@ARG\n"
+				smtg+="D=M+D\n"
+				smtg+="@R13\n"
+				smtg+="M=D\n"
+				smtg+="@SP\n"
+				smtg+="A=M-1\n"
+				smtg+="D=M\n"
+				smtg+="@R13\n"
+				smtg+="A=M\n"
+				smtg+="M=D\n"
+				
+			elif(segment=="temp"):
+				smtg+="@"+index+"\n"
+				smtg+="D=A\n"
+				smtg+="@5\n"
+				smtg+="D=A+D\n"
+				smtg+="@R13\n"
+				smtg+="M=D\n"
+				smtg+="@SP\n"
+				smtg+="A=M-1\n"
+				smtg+="D=M\n"
+				smtg+="@R13\n"
+				smtg+="A=M\n"
+				smtg+="M=D\n"
+				
+			elif(segment=="pointer"):
+				smtg+="@"+index+"\n"
+				smtg+="D=A\n"
+				smtg+="@3\n"
+				smtg+="D=A+D\n"
+				smtg+="@R13\n"
+				smtg+="M=D\n"
+				smtg+="@SP\n"
+				smtg+="A=M-1\n"
+				smtg+="D=M\n"
+				smtg+="@R13\n"
+				smtg+="A=M\n"
+				smtg+="M=D\n"
+				
+			elif(segment=="static"):
+				smtg+="@SP\n"
+				smtg+="A=M-1\n"
+				smtg+="D=M\n"
+				smtg+="@"+outputfile[:-3]+"."+index+"\n"
+				smtg+="M=D\n"
+				
+			else:
+				smtg="invalid"
+			self.outputfile.write(smtg)
+				
+def main(args):
+    source = sys.argv[1]
+    parser = Parser(source + ".vm")
+    codewriter = CodeWriter(source + ".asm")
+
+    while parser.hasMoreCommands():
+        parser.advance()
+        commands = parser.commandType()
+
+        if commands =="push" or commands == "pop":
+            codewriter.writePushPop(commands, parser.arg1(), parser.arg2())
+        elif cType == "C_ARITHMETIC":
+            codewriter.writeArithmetic(parser.components[0])
+    codewriter.close()
+    return 0
+
+if __name__ == "__main__":
+	import sys
+	sys.exit(main(sys.argv))
 				
 		
 				
