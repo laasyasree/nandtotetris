@@ -355,7 +355,7 @@ def main(args):
         parser.advance()
         commands = parser.commandType()
 
-        if commands =="push" or commands == "pop":
+        if commands =="C_PUSH" or commands == "C_POP":
             codewriter.writePushPop(commands, parser.arg1(), parser.arg2())
         elif cType == "C_ARITHMETIC":
             codewriter.writeArithmetic(parser.components[0])
