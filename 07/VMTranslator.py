@@ -1,7 +1,8 @@
+import os
 class Parser:
 	def __init__(self,inputfile):
 		self.inputfile=open(inputfile,'r')
-		self.line=[""]
+		self.components=[""]
 		self.commands={
 			"add" : "C_ARITHMETIC",
             "sub" : "C_ARITHMETIC",
@@ -30,9 +31,10 @@ class Parser:
 			self.end = True
 		else:
 			line=a.strip()
-			components=line.split()
-			
-			
+			if(line==""):
+				self.advance()
+			else:
+				self.components=line.split() 
 			
 	def commandType(self):
 		return self.components[0]
@@ -45,10 +47,10 @@ class Parser:
 		
 class CodeWriter:
 	def __init__(self,outputfile):
-		self.outputfile.open(outputfile,"w")
+		self.outputfile=open(outputfile,'w')
 		count=0
 		
-	def Close(self):
+	def close(self):
 		self.outputfile.close()
 		
 	def writeArithmetic(self,components):
@@ -149,8 +151,8 @@ class CodeWriter:
 			
 		self.outputfile.write("//"+components+"\n"+smtg)
 		
-	def WritePushPop(self,command,segment,index):
-		
+	def writePushPop(self,command,segment,index):
+		smtg=""
 		if(command=="push"):
 			self.outputfile.write("//push "+segment+" "+str(index)+"\n")
 			if(segment=="local"):
@@ -245,7 +247,6 @@ class CodeWriter:
 				
 			else:
 				smtg="invalid"
-				
 			self.outputfile.write(smtg+"\n")
 				
 		elif(command=="pop"):
@@ -347,22 +348,21 @@ class CodeWriter:
 			self.outputfile.write(smtg)
 				
 def main(args):
-    source = sys.argv[1]
-    parser = Parser(source + ".vm")
-    codewriter = CodeWriter(source + ".asm")
+	source = sys.argv[1]
+	parser = Parser(source + ".vm")
+	codewriter = CodeWriter(source + ".asm")
 
-    while parser.hasMoreCommands():
-        parser.advance()
-        commands = parser.commandType()
-
-        if commands =="C_PUSH" or commands == "C_POP":
-            codewriter.writePushPop(commands, parser.arg1(), parser.arg2())
-        elif cType == "C_ARITHMETIC":
-            codewriter.writeArithmetic(parser.components[0])
-    codewriter.close()
-    return 0
+	while(parser.hasMoreCommands()):
+		parser.advance()
+		commands = parser.commandType()
+		
+		if commands =="push" or commands == "pop":
+			codewriter.writePushPop(commands, parser.arg1(), parser.arg2())
+		elif commands == "C_ARITHMETIC":
+			codewriter.writeArithmetic(parser.components[0])
+	codewriter.close()
+	return 0
 
 if __name__ == "__main__":
-	import sys
-	sys.exit(main(sys.argv))
-				
+    import sys
+    sys.exit(main(sys.argv)
