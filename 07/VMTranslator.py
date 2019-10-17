@@ -19,6 +19,9 @@ class Parser:
 		self.end= False
             
 	def hasMoreCommands(self):
+		cursorPosition = self.inputfile.tell()
+		self.advance()
+		self.inputfile.seek(cursorPosition)
 		if(self.end):
 			return False
 		else:
@@ -48,100 +51,108 @@ class Parser:
 class CodeWriter:
 	def __init__(self,outputfile):
 		self.outputfile=open(outputfile,'w')
-		count=0
+		self.count=0
+		self.fn=outputfile[:-3]
 		
 	def close(self):
 		self.outputfile.close()
 		
-	def writeArithmetic(self,components):
+	def writeArithmetic(self,component):
 		smtg=""
-		if(components=="add"):
+		self.outputfile.write("//"+component+"\n")
+		if(component =="add"):
 			smtg+="@SP\n"
-			smtg+="A=M-1\n"
+			smtg+="AM=M-1\n"
 			smtg+="D=M\n"
 			smtg+="@SP\n"
-			smtg+="A=M-1\n"
+			smtg+="AM=M-1\n"
 			smtg+="M=D+M\n"
 			smtg+="@SP\n"
 			smtg+="M=M+1\n"
 			
-		elif(components=="sub"):
+		elif(component=="sub"):
 			smtg+="@SP\n"
-			smtg+="A=M-1\n"
+			smtg+="AM=M-1\n"
 			smtg+="D=M\n"
 			smtg+="@SP\n"
-			smtg+="A=M-1\n"
-			smtg+="M=D-M\n"
+			smtg+="AM=M-1\n"
+			smtg+="M=M-D\n"
 			smtg+="@SP\n"
 			smtg+="M=M+1\n"
 			
-		elif(components=="neg"):
+		elif(component=="neg"):
 			smtg+="@SP\n"
 			smtg+="A=M-1\n"
 			smtg+="M=-M\n"
 			
-		elif(components=="eq"):
-			self.count+=1
+		elif(component=="eq"):
 			c=str(self.count)
+			self.count+=1
 			smtg+="@SP\n"
-			smtg+="A=M-1\n"
+			smtg+="AM=M-1\n"
 			smtg+="D=M\n"
 			smtg+="@SP\n"
 			smtg+="A=M-1\n"
+			smtg+="D=M-D\n"
 			smtg+="M=-1\n"
-			smtg+="D=D-M\n"
 			smtg+="@equal"+c+"\n"
 			smtg+="D;JEQ\n"
+			smtg+="@SP\n"
+			smtg+="A=M-1\n"
 			smtg+="M=0\n"
 			smtg+="(equal"+c+")\n"
 			
-		elif(components=="gt"):
-			self.count+=1;
+		elif(component=="gt"):
 			c=str(self.count)
+			self.count+=1;
 			smtg+="@SP\n"
-			smtg+="A=M-1\n"
+			smtg+="AM=M-1\n"
 			smtg+="D=M\n"
 			smtg+="@SP\n"
 			smtg+="A=M-1\n"
+			smtg+="D=M-D\n"
 			smtg+="M=-1\n"
-			smtg+="D=D-M\n"
 			smtg+="@gt"+c+"\n"
 			smtg+="D;JGT\n"
+			smtg+="@SP\n"
+			smtg+="A=M-1\n"
 			smtg+="M=0\n"
 			smtg+="(gt"+c+")\n"
 			
-		elif(components=="lt"):
-			self.count+=1
+		elif(component=="lt"):
 			c=str(self.count)
+			self.count+=1;
 			smtg+="@SP\n"
-			smtg+="A=M-1\n"
+			smtg+="AM=M-1\n"
 			smtg+="D=M\n"
 			smtg+="@SP\n"
 			smtg+="A=M-1\n"
+			smtg+="D=M-D\n"
 			smtg+="M=-1\n"
-			smtg+="D=D-M\n"
 			smtg+="@lt"+c+"\n"
-			smtg+="D;JLTn"
+			smtg+="D;JLT\n"
+			smtg+="@SP\n"
+			smtg+="A=M-1\n"
 			smtg+="M=0\n"
 			smtg+="(lt"+c+")\n"
 			
-		elif(components=="and"):
+		elif(component=="and"):
 			smtg+="@SP\n"
-			smtg+="A=M-1\n"
+			smtg+="AM=M-1\n"
 			smtg+="D=M\n"
 			smtg+="@SP\n"
 			smtg+="A=M-1\n"
 			smtg+="M=D&M\n"
 			
-		elif(components=="or"):
+		elif(component=="or"):
 			smtg+="@SP\n"
-			smtg+="A=M-1\n"
+			smtg+="AM=M-1\n"
 			smtg+="D=M\n"
 			smtg+="@SP\n"
 			smtg+="A=M-1\n"
 			smtg+="M=D|M\n"
 		
-		elif(components=="not"):
+		elif(component=="not"):
 			smtg+="@SP\n"
 			smtg+="A=M-1\n"
 			smtg+="M=!M\n"
@@ -149,7 +160,7 @@ class CodeWriter:
 		else:
 			smtg="invalid command"
 			
-		self.outputfile.write("//"+components+"\n"+smtg)
+		self.outputfile.write(smtg+"\n")
 		
 	def writePushPop(self,command,segment,index):
 		smtg=""
@@ -237,7 +248,7 @@ class CodeWriter:
 				smtg+="M=M+1\n"
 				
 			elif(segment=="static"):
-				smtg+="@"+outputfile[:-3]+"."+index+"\n"
+				smtg+="@"+self.fn+"."+index+"\n"
 				smtg+="D=M\n"
 				smtg+="@SP\n"
 				smtg+="A=M\n"
@@ -260,7 +271,7 @@ class CodeWriter:
 				smtg+="@R13\n"
 				smtg+="M=D\n"
 				smtg+="@SP\n"
-				smtg+="A=M-1\n"
+				smtg+="AM=M-1\n"
 				smtg+="D=M\n"
 				smtg+="@R13\n"
 				smtg+="A=M\n"
@@ -274,7 +285,7 @@ class CodeWriter:
 				smtg+="@R13\n"
 				smtg+="M=D\n"
 				smtg+="@SP\n"
-				smtg+="A=M-1\n"
+				smtg+="AM=M-1\n"
 				smtg+="D=M\n"
 				smtg+="@R13\n"
 				smtg+="A=M\n"
@@ -288,7 +299,7 @@ class CodeWriter:
 				smtg+="@R13\n"
 				smtg+="M=D\n"
 				smtg+="@SP\n"
-				smtg+="A=M-1\n"
+				smtg+="AM=M-1\n"
 				smtg+="D=M\n"
 				smtg+="@R13\n"
 				smtg+="A=M\n"
@@ -302,7 +313,7 @@ class CodeWriter:
 				smtg+="@R13\n"
 				smtg+="M=D\n"
 				smtg+="@SP\n"
-				smtg+="A=M-1\n"
+				smtg+="AM=M-1\n"
 				smtg+="D=M\n"
 				smtg+="@R13\n"
 				smtg+="A=M\n"
@@ -316,7 +327,7 @@ class CodeWriter:
 				smtg+="@R13\n"
 				smtg+="M=D\n"
 				smtg+="@SP\n"
-				smtg+="A=M-1\n"
+				smtg+="AM=M-1\n"
 				smtg+="D=M\n"
 				smtg+="@R13\n"
 				smtg+="A=M\n"
@@ -330,7 +341,7 @@ class CodeWriter:
 				smtg+="@R13\n"
 				smtg+="M=D\n"
 				smtg+="@SP\n"
-				smtg+="A=M-1\n"
+				smtg+="AM=M-1\n"
 				smtg+="D=M\n"
 				smtg+="@R13\n"
 				smtg+="A=M\n"
@@ -338,9 +349,9 @@ class CodeWriter:
 				
 			elif(segment=="static"):
 				smtg+="@SP\n"
-				smtg+="A=M-1\n"
+				smtg+="AM=M-1\n"
 				smtg+="D=M\n"
-				smtg+="@"+outputfile[:-3]+"."+index+"\n"
+				smtg+="@"+self.fn+"."+index+"\n"
 				smtg+="M=D\n"
 				
 			else:
@@ -358,11 +369,11 @@ def main(args):
 		
 		if commands =="push" or commands == "pop":
 			codewriter.writePushPop(commands, parser.arg1(), parser.arg2())
-		elif commands == "C_ARITHMETIC":
+		elif (commands =="add" or commands == "sub" or commands == "neg" or commands == "eq" or commands == "gt" or commands == "lt" or commands == "and"  or commands == "or" or commands == "not" ) :
 			codewriter.writeArithmetic(parser.components[0])
 	codewriter.close()
 	return 0
 
 if __name__ == "__main__":
     import sys
-    sys.exit(main(sys.argv)
+    sys.exit(main(sys.argv))
