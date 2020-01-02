@@ -53,6 +53,7 @@ class CodeWriter:
 		self.outputfile=open(outputfile,'w')
 		self.count=0
 		self.fn=outputfile[:-3]
+		self.functionCall=0
 		
 	def close(self):
 		self.outputfile.close()
@@ -364,7 +365,7 @@ class CodeWriter:
 		smtg += "D = A\n"
 		smtg += "@SP\n"
 		smtg += "M = D\n"
-        	self.outputfile.write(smtg)
+		self.outputfile.write(smtg)
 		self.writeCall('Sys.init','0')
 
 	def writeLabel(self,s):
@@ -382,7 +383,7 @@ class CodeWriter:
 		smtg += "@SP\n"
 		smtg += "AM = M -1\n"
 		smtg += "D = M\n"
-		smtg += "@"+string+"\n"
+		smtg += "@"+s+"\n"
 		smtg += "D;JNE\n"
 		self.outputfile.write("//if statement\n"+smtg)
      
@@ -395,6 +396,130 @@ class CodeWriter:
 			self.writeIf(location)
 		else:
 			self.outputfile.write("this implementation is not found yet:"+ command)
+
+	def writeFunction(self, funcName, nVar):
+		self.writeLabel(funcName+"$label")
+		smtg = ""
+		for i in range(int(nVar)):             
+			smtg += "D = 0\n"                        
+			smtg += "@SP\n"                        
+			smtg += "A = M\n"                        
+			smtg += "M = D\n"                   
+			smtg += "@SP\n"                        
+			smtg += "M = M + 1\n"
+		self.outputfile.write("//function "+funcName+" "+nVar+"\n"+smtg)
+
+	def writeCall(self, funcName, nVar):
+		smtg = ""
+		self.functionCall+=1
+		smtg += "@"+funcName+"$ret."+str(self.functionCall)+"\n"
+		smtg += "D = A\n"
+		smtg += "@SP\n"
+		smtg += "A = M\n"
+		smtg += "M = D\n"
+		smtg += "@SP\n"	
+		smtg += "M = M + 1\n"
+
+		smtg += "@LCL\n"
+		smtg += "D = M\n"
+		smtg += "@SP\n"
+		smtg += "A = M\n"
+		smtg += "M = D\n"
+		smtg += "@SP\n"
+		smtg += "M = M + 1\n"
+
+		smtg += "@ARG\n"
+		smtg += "D = M\n"
+		smtg += "@SP\n"
+		smtg += "A = M\n"
+		smtg += "M = D\n"
+		smtg += "@SP\n"
+		smtg += "M = M + 1\n"
+
+		smtg += "@THIS\n"
+		smtg += "D = M\n"
+		smtg += "@SP\n"
+		smtg += "A = M\n"
+		smtg += "M = D\n"
+		smtg += "@SP\n"
+		smtg += "M = M + 1\n"
+
+		smtg += "@THAT\n"
+		smtg += "D = M\n"
+		smtg += "@SP\n"
+		smtg += "A = M\n"
+		smtg += "M = D\n"
+		smtg += "@SP\n"
+		smtg += "M = M + 1\n"
+
+        
+		smtg += "@SP\n"
+		smtg += "D = M\n"
+		smtg += "@LCL\n"
+		smtg += "M = D\n"
+
+        
+		smtg += "@"+str(5+int(nVar))+"\n"
+		smtg += "D = D - A\n"
+		smtg += "@ARG\n"
+		smtg += "M = D\n"
+        
+		smtg += "@"+funcName+"$label\n"
+		smtg += "0;JMP\n"
+        
+		smtg += "("+funcName+"$ret."+str(self.functionCall) +")\n"
+
+		self.outputfile.write("//call "+funcName+" "+nVar+"\n"+smtg)
+
+	def writeReturn(self):
+		endFrame = 'R13'
+		retAddr = 'R14' 
+		smtg = ""
+		smtg += "@LCL\n"
+		smtg += "D = M\n"
+		smtg += "@"+endFrame+"\n"
+		smtg += "M = D\n"
+
+		smtg += "@"+endFrame+"\n"
+		smtg += "D = M\n"
+		smtg += "@5\n"
+		smtg += "D = D - A\n"
+		smtg += "A = D\n"
+		smtg += "D = M\n"
+		smtg += "@"+retAddr+"\n"
+		smtg += "M = D\n"
+
+		smtg += "@SP\n"
+		smtg += "AM = M - 1\n"
+		smtg += "D = M\n"
+		smtg += "@ARG\n"
+		smtg += "A = M\n"
+		smtg += "M = D\n"
+		smtg += "@ARG\n"
+		smtg += "D = M + 1\n"
+		smtg += "@SP\n"
+		smtg += "M = D\n"
+
+		retset = 1
+		for addr in ["@THAT", "@THIS", "@ARG", "@LCL"]:
+            
+			smtg += "@"+endFrame+"\n"
+			smtg += "D = M\n"
+			smtg += "@"+str(retset)+"\n"
+			smtg += "D = D - A\n"
+			smtg += "A = D\n"
+			smtg += "D = M\n"
+			smtg += addr+"\n"
+			smtg += "M = D\n"
+			retset += 1
+
+		smtg += "@"+retAddr+"\n"
+		smtg += "A = M\n"
+		smtg += "0;JMP\n"
+
+		self.outputfile.write("//return\n"+smtg)
+
+    
 
 	
 def main(args):
@@ -410,6 +535,14 @@ def main(args):
 			codewriter.writePushPop(commands, parser.arg1(), parser.arg2())
 		elif (commands =="add" or commands == "sub" or commands == "neg" or commands == "eq" or commands == "gt" or commands == "lt" or commands == "and"  or commands == "or" or commands == "not" ) :
 			codewriter.writeArithmetic(parser.components[0])
+		elif commands == "goto" or commands == "if-goto" or commands == "label" :
+			codewriter.writeBranching(parser.components[0], parser.arg1())
+		elif commands == "call" :
+			codewriter.writeCall(parser.arg1(),parser.arg2())
+		elif commands == "function" :
+			codewriter.writeFunction(parser.arg1(),parser.arg2())
+		else:
+			codewriter.writeReturn()
 	codewriter.close()
 	return 0
 
